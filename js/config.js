@@ -5,7 +5,7 @@
 // 1. URL Web App Google Apps Script (lihat README.md langkah 4).
 //    Contoh: "https://script.google.com/macros/s/AKfyc.../exec"
 //    Bisa juga diisi lewat kolom "URL API" di halaman login.
-window.API_URL = "PASTE_URL_WEB_APP_ANDA_DI_SINI";
+window.API_URL = "https://script.google.com/macros/s/AKfycbzmCvGb1ULNIZRz8g8kexZVaaiMgWVZY4ZMiyQsqIzeKxsm-9KKDBoBYUTcwA5bMxp3ow/exec";
 
 // 2. Nama Kepala Bimba untuk tanda tangan cetak LPMB.
 window.HEAD_NAME = "Widya Apria Alfionita, S.Pd";
