@@ -3,7 +3,7 @@ window.CONFIG = {
   APP_NAME: 'Bimba Mahatari Kecil',
   APP_TAGLINE: 'Learning and playing.',
   LOGO_URL: 'assets/img/logo-bimba.png',
-  API_URL: 'PASTE_URL_APPS_SCRIPT_DI_SINI',
+  API_URL: 'https://script.google.com/macros/s/AKfycbzmCvGb1ULNIZRz8g8kexZVaaiMgWVZY4ZMiyQsqIzeKxsm-9KKDBoBYUTcwA5bMxp3ow/exec',
   LOCAL_API_URL: '/api',
   FONNTE_SITE: 'https://fonnte.com',
   SUPPORT_WA: ''
