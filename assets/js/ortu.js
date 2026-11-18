@@ -83,7 +83,7 @@
 
     html += '<div class="welcome-card"><div class="welcome-copy">' +
         '<div class="welcome-kicker">' + ui.icon('sun', 12) + ' ' + ui.esc(child.nama) + ' · ' + ui.esc(child.kelas || 'Anak bimbingan') + '</div>' +
-        '<h2>' + (next ? 'Sesi berikutnya ' + ui.esc(next.hari) + ', ' + ui.esc(next.jamMulai) + '–' + ui.esc(next.jamSelesai) : 'Semangat belajar hari ini!') + '</h2>' +
+        '<h2>' + (next ? 'Sesi berikutnya ' + ui.esc(next.hari) + ', ' + ui.esc(ui.tanggal(next.tanggal, 'short')) + ' · ' + ui.esc(next.jamMulai) + '–' + ui.esc(next.jamSelesai) : 'Semangat belajar hari ini!') + '</h2>' +
         '<p>' + (enr ? 'Paket ' + ui.esc(enr.paket ? enr.paket.nama : 'belajar') + ' bersama ' + ui.esc(enr.pengajar ? enr.pengajar.nama : 'pengajar') + '. ' : '') +
           'Laporan harian dan rapor dapat dilihat kapan saja melalui menu di samping.</p>' +
         '<div class="welcome-actions">' +
