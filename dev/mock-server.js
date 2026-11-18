@@ -373,8 +373,10 @@ function attendanceTodayFor(eid) {
 function reportTodayFor(childId) {
   return reports.find(r => r.anakId === childId && r.tanggal === TODAY) || null;
 }
-function nextSchedule(slotOrSlots) {
+function nextSchedule(slotOrSlots, skipDates) {
   const list = Array.isArray(slotOrSlots) ? slotOrSlots : (slotOrSlots ? [slotOrSlots] : []);
+  const skip = {};
+  (skipDates || []).forEach(v => { const k = String(v || '').slice(0, 10); if (k) skip[k] = 1; });
   const candidates = [];
   list.forEach(s => {
     const idx = HARI.indexOf(s.hari);
@@ -384,6 +386,8 @@ function nextSchedule(slotOrSlots) {
     const parts = String(s.jamMulai || '00:00').split(':');
     const target = new Date(d.getFullYear(), d.getMonth(), d.getDate() + diff, Number(parts[0] || 0), Number(parts[1] || 0), 0, 0);
     if (diff === 0 && target <= now) target.setDate(target.getDate() + 7);
+    let guard = 0;
+    while (skip[iso(target)] && guard < 8) { target.setDate(target.getDate() + 7); guard += 1; }
     candidates.push({ tanggal: iso(target), hari: s.hari, jamMulai: s.jamMulai, jamSelesai: s.jamSelesai });
   });
   candidates.sort((a, b) => String(a.tanggal).localeCompare(String(b.tanggal)));
@@ -408,7 +412,7 @@ function overview(child) {
     lpmbLatest: ls[0] ? lpmbRow(ls[0]) : null,
     unpaidCount: unpaid.length,
     unpaidTotal: unpaid.reduce((s, b) => s + Math.max(0, Number(b.jumlah || 0) - billPaid(b)), 0),
-    nextSchedule: e ? nextSchedule(enrollmentSlots(e)) : null
+    nextSchedule: e ? nextSchedule(enrollmentSlots(e), attendance.filter(a => a.anakId === child.id).map(a => a.tanggal)) : null
   };
 }
 function menuFor(childList) {
