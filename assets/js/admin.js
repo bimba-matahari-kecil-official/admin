@@ -508,11 +508,37 @@
         '</div></div></div>';
     }).join('') : '<div class="card" style="grid-column:1/-1"><div class="card-body">' + ui.empty('book', 'Belum ada paket', 'Tambahkan paket belajar pertama.', '<button class="btn btn-primary" id="emptyAddPackage">Tambah paket</button>') + '</div></div>') + '</div>';
 
+    var slotChildren = {};
+    slots.forEach(function (s) {
+      if (s.anakId && !slotChildren[s.anakId]) slotChildren[s.anakId] = s.anakNama || 'Siswa';
+    });
+    var childIds = Object.keys(slotChildren).sort(function (a, b) {
+      return String(slotChildren[a]).localeCompare(String(slotChildren[b]));
+    });
+    var slotTeachers = {};
+    slots.forEach(function (s) {
+      if (s.pengajarId && !slotTeachers[s.pengajarId]) slotTeachers[s.pengajarId] = s.pengajarNama || 'Pengajar';
+    });
+    var teacherIds = Object.keys(slotTeachers).sort(function (a, b) {
+      return String(slotTeachers[a]).localeCompare(String(slotTeachers[b]));
+    });
+
     html += '<div class="mt-24 section-head-sm"><h3>Jadwal & slot</h3><span class="pill-count">' + slots.filter(function (s) { return s.status === 'terisi'; }).length + ' terisi</span></div>';
     html += ui.card({
-      body: '<div class="data-toolbar"><div class="filter-row"><select class="select" id="slotFilterPackage"><option value="">Semua paket</option>' +
+      body: '<div class="data-toolbar"><div class="filter-row slot-filters">' +
+        '<select class="select" id="slotFilterPackage"><option value="">Semua paket</option>' +
         packages.map(function (p) { return '<option value="' + ui.attr(p.id) + '">' + ui.esc(p.nama) + '</option>'; }).join('') +
-        '</select></div><span class="small text-muted">Jadwal terisi tidak dapat dihapus.</span></div>' +
+        '</select>' +
+        '<select class="select" id="slotFilterDay"><option value="">Semua hari</option>' +
+        C.HARI.map(function (h) { return '<option value="' + ui.attr(h) + '">' + ui.esc(h) + '</option>'; }).join('') +
+        '</select>' +
+        '<select class="select" id="slotFilterTeacher"><option value="">Semua pengajar</option>' +
+        teacherIds.map(function (id) { return '<option value="' + ui.attr(id) + '">' + ui.esc(slotTeachers[id]) + '</option>'; }).join('') +
+        '</select>' +
+        '<select class="select" id="slotFilterChild"><option value="">Semua siswa</option>' +
+        childIds.map(function (id) { return '<option value="' + ui.attr(id) + '">' + ui.esc(slotChildren[id]) + '</option>'; }).join('') +
+        '</select>' +
+        '</div><span class="small text-muted">Jadwal terisi tidak dapat dihapus.</span></div>' +
         '<div class="table-wrap"><table class="data-table"><thead><tr><th>Hari</th><th>Jam</th><th>Paket</th><th>Pengajar</th><th>Status</th><th>Siswa</th><th></th></tr></thead><tbody id="slotRows"></tbody></table></div>'
     });
 
@@ -524,8 +550,20 @@
         if (emptyAdd) emptyAdd.onclick = function () { openPackage(null); };
         root.querySelector('#addSlot').onclick = function () { openSlot(null); };
 
-        function drawSlots(filter) {
-          var list = slots.filter(function (s) { return !filter || s.paketId === filter; });
+        var pkgSel = root.querySelector('#slotFilterPackage');
+        var daySel = root.querySelector('#slotFilterDay');
+        var teacherSel = root.querySelector('#slotFilterTeacher');
+        var childSel = root.querySelector('#slotFilterChild');
+
+        function drawSlots() {
+          var pkg = pkgSel.value, day = daySel.value, teacher = teacherSel.value, child = childSel.value;
+          var list = slots.filter(function (s) {
+            if (pkg && s.paketId !== pkg) return false;
+            if (day && s.hari !== day) return false;
+            if (teacher && s.pengajarId !== teacher) return false;
+            if (child && s.anakId !== child) return false;
+            return true;
+          });
           var body = root.querySelector('#slotRows');
           if (!list.length) { body.innerHTML = S.emptyRow(7, 'Belum ada jadwal untuk filter ini.'); return; }
           body.innerHTML = list.map(function (s) {
@@ -541,8 +579,11 @@
               '</div></td></tr>';
           }).join('');
         }
-        drawSlots('');
-        root.querySelector('#slotFilterPackage').onchange = function () { drawSlots(this.value); };
+        drawSlots();
+        pkgSel.onchange = drawSlots;
+        daySel.onchange = drawSlots;
+        teacherSel.onchange = drawSlots;
+        childSel.onchange = drawSlots;
 
         root.addEventListener('click', function (e) {
           var pe = e.target.closest('[data-pkg-edit]');
