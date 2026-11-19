@@ -841,8 +841,8 @@ actions['jadwal.save'] = data => {
   if (data.id && !s) throw apiError('Jadwal tidak ditemukan.', 'NOT_FOUND');
   const oldPkg = s ? pkgById(s.paketId) : null;
   const pkg = pkgById(data.paketId) || {};
-  if (s && /demo/i.test(String((oldPkg || {}).nama || ''))) {
-    throw apiError('Jadwal paket demo tidak dapat diubah. Hapus lalu buat jadwal baru jika jadwal demo memang perlu diganti.', 'FORBIDDEN');
+  if (s && /demo/i.test(String((oldPkg || {}).nama || '')) && s.paketId !== data.paketId) {
+    throw apiError('Jenis paket pada jadwal demo tidak dapat diubah. Pengajar, hari, jam, dan kuota tetap dapat diperbarui.', 'FORBIDDEN');
   }
   if (s && /demo/i.test(String(pkg.nama || '')) && s.paketId !== data.paketId) {
     throw apiError('Jadwal tidak dapat dipindahkan ke paket demo.', 'FORBIDDEN');
