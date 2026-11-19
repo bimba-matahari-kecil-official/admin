@@ -624,40 +624,36 @@
 
         function openSlot(s) {
           var isEdit = !!s;
-          var demoLock = isEdit && /demo/i.test(String(s.paketNama || ''));
+          var demoSlot = isEdit && /demo/i.test(String(s.paketNama || ''));
           var inUse = !!s && s.status === 'terisi';
           var pkgOptions = packages.filter(function (p) { return p.aktif || (s && p.id === s.paketId); });
-          var subtitle = demoLock
-            ? 'Jadwal paket demo tidak dapat diubah.'
-            : (inUse ? 'Jadwal sedang dipakai ' + s.anakNama + '. Jika pengajar diganti, laporan harian dan rapor LPMB dilanjutkan oleh pengajar baru dan orang tua mendapat informasi.'
-              : '');
+          var subtitle = inUse
+            ? 'Jadwal sedang dipakai ' + s.anakNama + '. Jika pengajar diganti, laporan harian dan rapor LPMB dilanjutkan oleh pengajar baru dan orang tua mendapat informasi.'
+            : '';
           ui.modal({
             title: isEdit ? 'Edit jadwal' : 'Tambah jadwal',
             subtitle: subtitle,
             size: 'md',
             body: '<form id="slotForm"><div class="form-grid">' +
-              '<div class="field"><label>Paket <span class="req">*</span></label><select class="select" name="paketId"' + (demoLock || inUse ? ' disabled' : '') + '>' + S.options(pkgOptions, s ? s.paketId : '', 'Pilih paket') + '</select>' +
-              (inUse && !demoLock ? '<div class="hint">Paket tidak dapat diganti karena jadwal sedang dipakai siswa.</div>' : '') + '</div>' +
-              '<div class="field"><label>Pengajar <span class="req">*</span></label><select class="select" name="pengajarId"' + (demoLock ? ' disabled' : '') + '>' + S.options(teachers, s ? s.pengajarId : '', 'Pilih pengajar') + '</select>' +
-              (inUse && !demoLock ? '<div class="hint">Mengganti pengajar memindahkan data anak dan laporan ke pengajar baru.</div>' : '') + '</div>' +
+              '<div class="field"><label>Paket <span class="req">*</span></label><select class="select" name="paketId"' + (demoSlot || inUse ? ' disabled' : '') + '>' + S.options(pkgOptions, s ? s.paketId : '', 'Pilih paket') + '</select>' +
+              (demoSlot ? '<div class="hint">Jenis paket demo tidak dapat diganti. Pengajar, hari, jam, dan kuota tetap dapat diubah.</div>'
+                : (inUse ? '<div class="hint">Paket tidak dapat diganti karena jadwal sedang dipakai siswa.</div>' : '')) + '</div>' +
+              '<div class="field"><label>Pengajar <span class="req">*</span></label><select class="select" name="pengajarId">' + S.options(teachers, s ? s.pengajarId : '', 'Pilih pengajar') + '</select>' +
+              (inUse ? '<div class="hint">Mengganti pengajar memindahkan data anak dan laporan ke pengajar baru.</div>' : '') + '</div>' +
               '<div class="form-grid two">' +
-                '<div class="field"><label>Hari <span class="req">*</span></label><select class="select" name="hari"' + (demoLock ? ' disabled' : '') + '>' + S.options(C.HARI.map(function (h) { return { value: h, label: h }; }), s ? s.hari : 'Senin') + '</select></div>' +
-                '<div class="field"><label>Kuota</label><input class="input" type="number" min="1" max="10" name="kuota" value="' + ui.attr(s ? s.kuota : 1) + '"' + (demoLock ? ' disabled' : '') + ' /></div>' +
+                '<div class="field"><label>Hari <span class="req">*</span></label><select class="select" name="hari">' + S.options(C.HARI.map(function (h) { return { value: h, label: h }; }), s ? s.hari : 'Senin') + '</select></div>' +
+                '<div class="field"><label>Kuota</label><input class="input" type="number" min="1" max="10" name="kuota" value="' + ui.attr(s ? s.kuota : 1) + '" /></div>' +
               '</div>' +
               '<div class="form-grid two">' +
-                '<div class="field"><label>Jam mulai <span class="req">*</span></label><select class="select" name="jamMulai"' + (demoLock ? ' disabled' : '') + '>' + S.time24Options(s ? s.jamMulai : '15:00') + '</select></div>' +
-                '<div class="field"><label>Jam selesai <span class="req">*</span></label><select class="select" name="jamSelesai"' + (demoLock ? ' disabled' : '') + '>' + S.time24Options(s ? s.jamSelesai : '16:30') + '</select></div>' +
+                '<div class="field"><label>Jam mulai <span class="req">*</span></label><select class="select" name="jamMulai">' + S.time24Options(s ? s.jamMulai : '15:00') + '</select></div>' +
+                '<div class="field"><label>Jam selesai <span class="req">*</span></label><select class="select" name="jamSelesai">' + S.time24Options(s ? s.jamSelesai : '16:30') + '</select></div>' +
               '</div>' +
-              '<div class="field"><label>Status</label><select class="select" name="status"' + (inUse || demoLock ? ' disabled' : '') + '><option value="tersedia"' + (!s || s.status !== 'nonaktif' ? ' selected' : '') + '>Tersedia</option><option value="nonaktif"' + (s && s.status === 'nonaktif' ? ' selected' : '') + '>Nonaktif</option></select>' +
+              '<div class="field"><label>Status</label><select class="select" name="status"' + (inUse ? ' disabled' : '') + '><option value="tersedia"' + (!s || s.status !== 'nonaktif' ? ' selected' : '') + '>Tersedia</option><option value="nonaktif"' + (s && s.status === 'nonaktif' ? ' selected' : '') + '>Nonaktif</option></select>' +
               (inUse ? '<div class="hint">Status terisi mengikuti siswa yang terdaftar.</div>' : '') + '</div>' +
-              (demoLock ? '<div class="alert alert-info">' + ui.icon('info', 15) + '<span>Paket demo tidak dapat diubah. Anda hanya dapat melihat detail jadwal ini.</span></div>' : '') +
             '</div></form>',
-            footer: demoLock
-              ? '<button type="button" class="btn btn-ghost" data-close>Tutup</button>'
-              : '<button type="button" class="btn btn-ghost" data-close>Batal</button><button type="button" class="btn btn-primary" id="slotSave">Simpan jadwal</button>',
+            footer: '<button type="button" class="btn btn-ghost" data-close>Batal</button><button type="button" class="btn btn-primary" id="slotSave">Simpan jadwal</button>',
             onMount: function (el, close) {
               el.querySelector('[data-close]').onclick = close;
-              if (demoLock) return;
               var form = el.querySelector('#slotForm');
               el.querySelector('#slotSave').onclick = async function () {
                 var d = ui.serialize(form);
