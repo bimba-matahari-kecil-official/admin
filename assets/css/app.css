@@ -800,6 +800,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
 .search-box .input { padding-left: 32px; min-height: 34px; font-size: 11px; }
 .filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .filter-row .select, .filter-row .input { min-height: 34px; font-size: 10.5px; width: auto; }
+.filter-row.slot-filters .select { min-width: 128px; max-width: 210px; }
 .pill-count { font-size: 9.5px; color: var(--muted); background: var(--cream); border: 1px solid var(--line-soft); border-radius: 99px; padding: 3px 8px; }
 
 /* tabs */
@@ -1294,6 +1295,7 @@ body.printing { background: #fff; }
   .search-box { min-width: 100%; }
   .filter-row { width: 100%; }
   .filter-row .select, .filter-row .input { flex: 1; min-width: 0; }
+  .filter-row.slot-filters .select { flex: 1 1 calc(50% - 4px); max-width: none; }
   .modal-backdrop { padding: 14px 10px; align-items: flex-end; }
   .modal { border-radius: 16px; max-height: calc(100vh - 28px); overflow-y: auto; }
   .modal-head, .modal-body { padding-left: 16px; padding-right: 16px; }
