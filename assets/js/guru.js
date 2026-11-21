@@ -63,7 +63,7 @@
     if (!s || !s.ortuPhone) return '';
     var times = timeText || slotTimesOnDay(s, dayName);
     var msg = 'Halo Bapak/Ibu ' + (s.ortuNama || 'Orang Tua') + ', mengingatkan jadwal belajar ' + (s.nama || 'anak') + ' ' + when + ', ' + dateLabel +
-      (times ? ', pukul ' + times : '') + (s.paketNama ? ' (' + s.paketNama + ')' : '') + '. Mohon ' + (s.nama || 'anak') + ' agar mempersiapkan diri untuk. Terima kasih.';
+      (times ? ', pukul ' + times : '') + (s.paketNama ? ' (' + s.paketNama + ')' : '') + '. Mohon ' + (s.nama || 'anak') + ' agar mempersiapkan diri. Terima kasih.';
     return ui.waLink(s.ortuPhone, msg);
   }
   function waButton(s, when, dayName, dateLabel, timeText) {
