@@ -1780,7 +1780,9 @@
         loadStorage(false);
 
         /* ---- akun ---- */
-        var users = usersData.users;
+        var users = (usersData.users || []).slice().sort(function (a, b) {
+          return (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1);
+        });
         var userRows = root.querySelector('#userRows');
         function drawUsers() {
           userRows.innerHTML = users.map(function (u) {
