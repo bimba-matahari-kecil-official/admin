@@ -8,7 +8,6 @@
   var C = BMK.const;
 
   function call(action, data) { return api.call(action, data); }
-  function firstName(name) { return String(name || 'Pengajar').trim().split(/\s+/)[0]; }
   function todayIso() { return ui.isoDate(new Date()); }
   function timeNow() { return new Date().toTimeString().slice(0, 5); }
   function scoreAvg(nilai) {
@@ -83,7 +82,7 @@
 
     var html = ui.pageHead({
       eyebrow: ui.tanggal(data.today, 'long'),
-      title: 'Selamat datang, ' + firstName(ctx.user.nama),
+      title: 'Selamat datang, ' + (ctx.user.nama || 'Pengajar'),
       subtitle: 'Siapkan absensi dan laporan belajar agar perkembangan anak terpantau orang tua.',
       actions: '<a class="btn btn-outline" href="#/guru/harian" data-route>' + ui.icon('clipboard', 15) + ' Laporan harian</a>' +
         '<a class="btn btn-primary" href="#/guru/absensi" data-route>' + ui.icon('mapPin', 15) + ' Absensi</a>'
@@ -1271,6 +1270,26 @@
       if (da !== db) return (da < 0 ? 99 : da) - (db < 0 ? 99 : db);
       return String(a.jamMulai).localeCompare(String(b.jamMulai));
     });
+    var jadwalHari = DAY_ORDER.filter(function (d) {
+      return jadwal.some(function (sl) { return sl.hari === d; });
+    });
+    var jadwalJam = [];
+    var jadwalPaket = [];
+    jadwal.forEach(function (sl) {
+      if (jadwalJam.indexOf(sl.jamMulai) === -1) jadwalJam.push(sl.jamMulai);
+      if (sl.paketNama && jadwalPaket.indexOf(sl.paketNama) === -1) jadwalPaket.push(sl.paketNama);
+    });
+    jadwalJam.sort();
+    jadwalPaket.sort();
+    function jadwalRow(sl) {
+      return '<div class="list-row"><div class="list-main"><b>' + ui.esc(sl.hari + ' · ' + sl.jamMulai + '–' + sl.jamSelesai) + '</b>' +
+        '<span>' + ui.esc(sl.paketNama || 'Paket') + (sl.anakNama ? ' · ' + ui.esc(sl.anakNama) : '') + '</span></div>' + ui.statusBadge(sl.status) + '</div>';
+    }
+    function jadwalOptions(values, allLabel) {
+      var out = '<option value="">' + allLabel + '</option>';
+      values.forEach(function (v) { out += '<option value="' + ui.attr(v) + '">' + ui.esc(v) + '</option>'; });
+      return out;
+    }
 
     var html = ui.pageHead({
       eyebrow: 'Akun',
@@ -1327,12 +1346,13 @@
           S.infoItem('Bergabung', ui.tanggal(teacher.createdAt, 'short')) +
           S.infoItem('Siswa aktif', String(st.siswa)) + S.infoItem('Gaji berjalan', ui.rupiah(st.gajiBulan)) + '</div>' +
       '</div></section>' +
-      '<section class="card mt-16"><div class="card-head"><div><h2>Jadwal mengajar</h2><p>Jadwal mingguan yang diatur admin.</p></div><span class="badge badge-gray">' + jadwal.length + ' sesi</span></div><div class="card-body">' +
+      '<section class="card mt-16"><div class="card-head"><div><h2>Jadwal mengajar</h2><p>Jadwal mingguan yang diatur admin.</p></div><span class="badge badge-gray" id="jadwalCount">' + jadwal.length + ' sesi</span></div><div class="card-body">' +
         (jadwal.length
-          ? '<div>' + jadwal.map(function (sl) {
-              return '<div class="list-row"><div class="list-main"><b>' + ui.esc(sl.hari + ' · ' + sl.jamMulai + '–' + sl.jamSelesai) + '</b>' +
-                '<span>' + ui.esc(sl.paketNama || 'Paket') + (sl.anakNama ? ' · ' + ui.esc(sl.anakNama) : '') + '</span></div>' + ui.statusBadge(sl.status) + '</div>';
-            }).join('') + '</div>'
+          ? '<div class="filter-row">' +
+              '<select class="select" id="jadwalHari" aria-label="Filter hari">' + jadwalOptions(jadwalHari, 'Semua hari') + '</select>' +
+              '<select class="select" id="jadwalJam" aria-label="Filter jam">' + jadwalOptions(jadwalJam, 'Semua jam') + '</select>' +
+              '<select class="select" id="jadwalPaket" aria-label="Filter paket">' + jadwalOptions(jadwalPaket, 'Semua paket') + '</select>' +
+            '</div><div id="jadwalList">' + jadwal.map(jadwalRow).join('') + '</div>'
           : ui.empty('calendar', 'Belum ada jadwal', 'Admin belum menambahkan slot jadwal untuk Anda.')) +
       '</div></section>' +
       '<section class="card"><div class="card-head"><div><h2>Catatan</h2></div></div><div class="card-body">' +
@@ -1381,6 +1401,28 @@
           } catch (err) { ui.toast(err.message, 'error', 5500); }
           ui.busy(btn, false);
         });
+
+        var jadwalList = root.querySelector('#jadwalList');
+        if (jadwalList) {
+          var selHari = root.querySelector('#jadwalHari');
+          var selJam = root.querySelector('#jadwalJam');
+          var selPaket = root.querySelector('#jadwalPaket');
+          var countBadge = root.querySelector('#jadwalCount');
+          var applyJadwalFilter = function () {
+            var h = selHari.value, j = selJam.value, p = selPaket.value;
+            var list = jadwal.filter(function (sl) {
+              if (h && sl.hari !== h) return false;
+              if (j && sl.jamMulai !== j) return false;
+              if (p && sl.paketNama !== p) return false;
+              return true;
+            });
+            jadwalList.innerHTML = list.length
+              ? list.map(jadwalRow).join('')
+              : '<div class="hint">Tidak ada jadwal yang cocok dengan filter.</div>';
+            countBadge.textContent = (h || j || p) ? list.length + ' dari ' + jadwal.length + ' sesi' : jadwal.length + ' sesi';
+          };
+          [selHari, selJam, selPaket].forEach(function (s) { s.addEventListener('change', applyJadwalFilter); });
+        }
       }
     };
   };
