@@ -592,6 +592,7 @@
               '<td' + statusTitle + '>' + ui.statusBadge(s.status) + '</td>' +
               '<td>' + ui.esc(s.anakNama || '—') + '</td>' +
               '<td><div class="cell-actions">' +
+                (occupied ? '<button type="button" class="icon-btn" data-slot-move="' + ui.attr(s.id) + '" title="Pindahkan kelas">' + ui.icon('arrowRight', 15) + '</button>' : '') +
                 '<button type="button" class="icon-btn" data-slot-edit="' + ui.attr(s.id) + '" title="Edit">' + ui.icon('pencil', 15) + '</button>' +
                 (!occupied ? '<button type="button" class="icon-btn" data-slot-del="' + ui.attr(s.id) + '" title="Hapus">' + ui.icon('trash', 15) + '</button>' : '') +
               '</div></td></tr>';
@@ -621,6 +622,12 @@
               ui.toast('Status paket diperbarui.', 'success');
               ctx.refresh();
             }).catch(function (err) { ui.toast(err.message, 'error'); });
+            return;
+          }
+          var sm = e.target.closest('[data-slot-move]');
+          if (sm) {
+            var moveSlot = slots.filter(function (x) { return x.id === sm.getAttribute('data-slot-move'); })[0];
+            if (moveSlot) openMove(moveSlot);
             return;
           }
           var se = e.target.closest('[data-slot-edit]');
@@ -741,6 +748,54 @@
                   }
                   ctx.refresh();
                 } catch (err) { ui.busy(btn, false); ui.toast(err.message, 'error', 5500); }
+              };
+            }
+          });
+        }
+
+        function openMove(s) {
+          var dayOrder = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+          var targets = slots.filter(function (t) {
+            return t.id !== s.id && t.paketId === s.paketId && !slotOccupied(t) && t.status !== 'nonaktif' && !t.bentrok;
+          }).sort(function (a, b) {
+            var da = dayOrder.indexOf(a.hari), db = dayOrder.indexOf(b.hari);
+            if (da !== db) return (da < 0 ? 99 : da) - (db < 0 ? 99 : db);
+            return String(a.jamMulai).localeCompare(String(b.jamMulai));
+          });
+          var optionsHtml = '<option value="">Pilih jadwal tujuan</option>' + targets.map(function (t) {
+            return '<option value="' + ui.attr(t.id) + '">' + ui.esc(t.hari + ' · ' + t.jamMulai + '–' + t.jamSelesai + ' · ' + t.pengajarNama) + '</option>';
+          }).join('');
+          ui.modal({
+            title: 'Pindahkan siswa',
+            subtitle: s.anakNama + ' · ' + s.hari + ' ' + s.jamMulai + '–' + s.jamSelesai + ' (' + s.paketNama + ')',
+            size: 'md',
+            body: '<div class="form-grid">' +
+              '<div class="alert alert-info">' + ui.icon('info', 16) +
+                '<span><b>Jadwal lama tidak dihapus.</b> Slot ' + ui.esc(s.hari + ' ' + s.jamMulai + '–' + s.jamSelesai) +
+                ' kembali berstatus Tersedia dan riwayat absensi serta laporan tetap tersimpan.</span></div>' +
+              (targets.length
+                ? '<div class="field"><label>Jadwal tujuan <span class="req">*</span></label><select class="select" id="moveTarget">' + optionsHtml + '</select>' +
+                  '<div class="hint">Hanya jadwal kosong dengan paket ' + ui.esc(s.paketNama) + ' yang ditampilkan. Bila pengajar berbeda, sesi lain anak ini ikut pindah ke pengajar baru.</div></div>'
+                : '<div class="alert alert-warning">' + ui.icon('alert', 16) +
+                  '<span>Belum ada jadwal kosong pada paket ini. Tambahkan jadwal baru melalui tombol <b>Tambah jadwal</b> terlebih dahulu.</span></div>') +
+            '</div>',
+            footer: '<button type="button" class="btn btn-ghost" data-close>Batal</button>' +
+              (targets.length ? '<button type="button" class="btn btn-primary" id="moveSave">Pindahkan</button>' : ''),
+            onMount: function (el, close) {
+              el.querySelector('[data-close]').onclick = close;
+              var btn = el.querySelector('#moveSave');
+              if (!btn) return;
+              btn.onclick = async function () {
+                var targetId = el.querySelector('#moveTarget').value;
+                if (!targetId) { ui.toast('Pilih jadwal tujuan.', 'error'); return; }
+                ui.busy(btn, true, 'Memindahkan…');
+                try {
+                  var res = await call('jadwal.move', { id: s.id, targetId: targetId });
+                  close();
+                  ui.toast('Siswa dipindahkan ke ' + res.ke + (res.pengajarBaru ? ' bersama ' + res.pengajarBaru : '') +
+                    '. Jadwal lama tetap tersedia.', 'success', 6000);
+                  ctx.refresh();
+                } catch (err) { ui.busy(btn, false); ui.toast(err.message, 'error', 6000); }
               };
             }
           });
