@@ -1015,6 +1015,82 @@ actions['jadwal.remove'] = data => {
   slots.splice(slots.indexOf(s), 1);
   return { ok: true };
 };
+actions['jadwal.move'] = data => {
+  const source = data.id ? slotById(data.id) : null;
+  if (!source) throw apiError('Jadwal asal tidak ditemukan.', 'NOT_FOUND');
+  const target = data.targetId ? slotById(data.targetId) : null;
+  if (!target) throw apiError('Jadwal tujuan tidak ditemukan.', 'NOT_FOUND');
+  if (source.id === target.id) throw apiError('Jadwal tujuan harus berbeda dari jadwal asal.', 'VALIDATION');
+  if (!slotTaken(source)) throw apiError('Jadwal asal belum diisi siswa.', 'CONFLICT');
+  if (slotTaken(target)) throw apiError('Jadwal tujuan sudah diisi siswa lain. Pilih jadwal yang masih kosong.', 'SLOT_TAKEN');
+  if (target.status === 'nonaktif') throw apiError('Jadwal tujuan sedang nonaktif.', 'CONFLICT');
+  const childId = String(source.anakId || '');
+  if (!childId) throw apiError('Jadwal asal tidak memiliki siswa.', 'CONFLICT');
+  const enrollment = enrollments.find(e => e.anakId === childId && slotIdsOf(e).indexOf(String(source.id)) !== -1);
+  if (!enrollment) throw apiError('Data pendaftaran siswa tidak ditemukan untuk jadwal ini.', 'NOT_FOUND');
+  const pkg = pkgById(enrollment.paketId);
+  if (String(target.paketId) !== String(enrollment.paketId)) {
+    throw apiError('Pindah kelas hanya dapat dilakukan ke jadwal dengan paket yang sama (' + ((pkg || {}).nama || '') + ').', 'VALIDATION');
+  }
+  const ownIds = slotIdsOf(enrollment);
+  const ownSet = {};
+  ownIds.forEach(id => { ownSet[String(id)] = true; });
+  const siblings = ownIds.filter(id => String(id) !== String(source.id)).map(slotById).filter(Boolean);
+  for (const sib of siblings) {
+    if (slotOverlaps(sib, target)) {
+      throw apiError('Jadwal ' + target.hari + ' ' + target.jamMulai + '–' + target.jamSelesai +
+        ' bertabrakan dengan sesi lain anak ini (' + sib.hari + ' ' + sib.jamMulai + '–' + sib.jamSelesai + '). Pilih jam berbeda.', 'SESSION_OVERLAP');
+    }
+  }
+  const teacher = teacherById(target.pengajarId);
+  if (!teacher || teacher.status !== 'aktif') throw apiError('Pengajar pada jadwal tujuan tidak aktif.', 'NOT_FOUND');
+  const teacherChanged = String(target.pengajarId) !== String(enrollment.pengajarId);
+  const takenAll = slots.filter(slotTaken);
+  let clash = null;
+  for (const o of takenAll) {
+    if (ownSet[String(o.id)] || String(o.pengajarId) !== String(target.pengajarId)) continue;
+    if (slotOverlaps(o, target)) { clash = { busy: o, waktu: target }; break; }
+  }
+  if (!clash && teacherChanged) {
+    for (const sib of siblings) {
+      for (const o of takenAll) {
+        if (ownSet[String(o.id)] || String(o.pengajarId) !== String(target.pengajarId)) continue;
+        if (slotOverlaps(o, sib)) { clash = { busy: o, waktu: sib }; break; }
+      }
+      if (clash) break;
+    }
+  }
+  if (clash) {
+    const busyPkg = pkgById(clash.busy.paketId);
+    throw apiError('Jadwal ' + clash.waktu.hari + ' ' + clash.waktu.jamMulai + '–' + clash.waktu.jamSelesai + ' bentrok: ' +
+      teacher.nama + ' sudah mengajar paket ' + ((busyPkg || {}).nama || 'lain') + ' pada ' +
+      clash.busy.hari + ' ' + clash.busy.jamMulai + '–' + clash.busy.jamSelesai +
+      '. Pilih jadwal lain atau ubah jadwal tujuan terlebih dahulu.', 'SLOT_TAKEN');
+  }
+  const stamp = new Date().toISOString();
+  target.status = 'terisi'; target.anakId = childId; target.updatedAt = stamp;
+  source.status = 'tersedia'; source.anakId = ''; source.updatedAt = stamp;
+  const newIds = ownIds.map(id => String(id) === String(source.id) ? String(target.id) : String(id));
+  enrollment.slotIds = newIds.join(',');
+  enrollment.slotId = newIds[0];
+  enrollment.updatedAt = stamp;
+  if (teacherChanged) {
+    siblings.forEach(sib => { sib.pengajarId = target.pengajarId; });
+    enrollment.pengajarId = target.pengajarId;
+    enrollment.pengajarChangedAt = stamp;
+    lpmb.filter(l => l.anakId === childId && l.status !== 'disetujui')
+      .forEach(l => { l.pengajarId = target.pengajarId; });
+  }
+  const child = childById(childId);
+  return {
+    ok: true,
+    anakNama: child ? child.nama : '',
+    dari: source.hari + ' ' + source.jamMulai + '–' + source.jamSelesai,
+    ke: target.hari + ' ' + target.jamMulai + '–' + target.jamSelesai,
+    pengajarBaru: teacherChanged ? teacher.nama : '',
+    pesan: 'Jadwal lama tetap tersimpan sebagai jadwal tersedia.'
+  };
+};
 actions['harian.list'] = (data, user) => {
   const t = teacherForUser(user);
   let rows = reports.map(dailyRow);
